@@ -39,6 +39,14 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Load `.env` from the current working directory (and parents).
+    // Existing process env vars take precedence and are not overwritten.
+    match dotenvy::dotenv() {
+        Ok(path) => eprintln!("loaded env file: {}", path.display()),
+        Err(dotenvy::Error::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => eprintln!("warning: could not load .env: {e}"),
+    }
+
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()

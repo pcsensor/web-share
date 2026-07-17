@@ -130,7 +130,15 @@ data/
 
 ## 环境变量
 
-复制 `.env.example` 作为参考：
+复制模板为 `.env` 后可直接 `cargo run --release`（见本地运行章节）：
+
+```bash
+cp .env.example .env   # Windows: copy .env.example .env
+```
+
+也可在 shell / systemd `EnvironmentFile` / Docker `environment` 中设置同名变量。`.env` 仅作本地开发便利，**生产仍建议用 systemd/容器注入密钥**。
+
+`.env.example` 字段说明：
 
 | 变量 | 默认 | 说明 |
 |------|------|------|
@@ -159,9 +167,24 @@ data/
 
 ### 编译与启动
 
+**推荐：使用 `.env` 文件**（启动时自动加载，已用 `dotenvy` 集成）：
+
 ```bash
 cd chat-transfer
 
+# 从模板复制，再编辑密码等配置（.env 已被 gitignore，勿提交）
+cp .env.example .env          # Windows: copy .env.example .env
+# 编辑 .env，至少修改 CHAT_PASSWORD=...
+
+cargo run --release
+```
+
+程序会在启动时读取当前工作目录（及向上查找）中的 `.env`。  
+**已存在的系统/ shell 环境变量优先，不会被 `.env` 覆盖。**
+
+也可以不建 `.env`，直接在 shell 里导出变量：
+
+```bash
 # PowerShell:
 $env:CHAT_PASSWORD = "YourStrongPassword_Here"
 $env:CHAT_BIND = "0.0.0.0:8080"

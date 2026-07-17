@@ -257,6 +257,7 @@ dependencies = [
  "chrono",
  "cookie",
  "dashmap",
+ "dotenvy",
  "futures-util",
  "hex",
  "hmac",
