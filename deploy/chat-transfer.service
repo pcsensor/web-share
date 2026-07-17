@@ -1,0 +1,33 @@
+[Unit]
+Description=Chat Transfer — private group file/chat server
+After=network.target
+
+[Service]
+Type=simple
+User=chatxfer
+Group=chatxfer
+WorkingDirectory=/opt/chat-transfer
+EnvironmentFile=/opt/chat-transfer/env
+ExecStart=/opt/chat-transfer/chat-transfer
+Restart=on-failure
+RestartSec=3
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/chat-transfer/data
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+
+# Resource limits (adjust as needed)
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

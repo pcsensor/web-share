@@ -1,0 +1,576 @@
+:root {
+  --bg: #0e1621;
+  --bg-secondary: #17212b;
+  --bg-tertiary: #242f3d;
+  --header: #17212b;
+  --composer: #17212b;
+  --bubble-in: #182533;
+  --bubble-out: #2b5278;
+  --bubble-out-text: #fff;
+  --text: #f5f5f5;
+  --text-secondary: #8b9aab;
+  --accent: #2AABEE;
+  --accent-hover: #229ED9;
+  --danger: #e53935;
+  --border: rgba(255, 255, 255, 0.06);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --radius: 12px;
+  --radius-bubble: 14px;
+  --font: "Segoe UI", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --header-h: 56px;
+  --composer-h: 56px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.hidden { display: none !important; }
+
+.view {
+  min-height: 100%;
+  height: 100%;
+}
+
+/* ---------- Login (Telegram-ish) ---------- */
+.login-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(42, 171, 238, 0.12), transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(43, 82, 120, 0.25), transparent 50%),
+    var(--bg);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 32px 28px 24px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.logo-circle {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #2AABEE, #1a7fb5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 20px rgba(42, 171, 238, 0.35);
+}
+
+.login-logo h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.login-hint {
+  text-align: center;
+  margin: 18px 0 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.field input {
+  background: var(--bg);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.field input:focus {
+  border-color: var(--accent);
+}
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn.primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn.primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn.block {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.error {
+  color: #ff8a80;
+  font-size: 0.85rem;
+  margin: 0 0 8px;
+}
+
+/* ---------- Chat layout ---------- */
+.chat-view {
+  display: grid;
+  grid-template-rows: var(--header-h) 1fr auto auto;
+  height: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  background: var(--bg);
+  position: relative;
+  /* Pattern like Telegram wallpaper */
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(42, 171, 238, 0.04) 0, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(43, 82, 120, 0.08) 0, transparent 45%),
+    linear-gradient(180deg, #0e1621 0%, #0b1219 100%);
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px 0 14px;
+  background: var(--header);
+  border-bottom: 1px solid var(--border);
+  z-index: 5;
+}
+
+.header-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #5c9ce6, #2AABEE);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.header-title {
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.header-sub {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+/* ---------- Messages ---------- */
+.messages {
+  overflow-y: auto;
+  padding: 12px 10px 16px;
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.day-sep {
+  align-self: center;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  border-radius: 12px;
+  margin: 10px 0;
+}
+
+.msg {
+  display: flex;
+  max-width: min(78%, 520px);
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.msg.out {
+  align-self: flex-end;
+}
+
+.msg.in {
+  align-self: flex-start;
+}
+
+.msg.system {
+  align-self: center;
+  max-width: 90%;
+}
+
+.bubble {
+  background: var(--bubble-in);
+  border-radius: var(--radius-bubble);
+  padding: 7px 10px 5px;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  word-break: break-word;
+}
+
+.msg.out .bubble {
+  background: var(--bubble-out);
+  border-bottom-right-radius: 4px;
+}
+
+.msg.in .bubble {
+  border-bottom-left-radius: 4px;
+}
+
+.msg.system .bubble {
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  text-align: center;
+  box-shadow: none;
+}
+
+.bubble .nick {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.msg.out .bubble .nick {
+  color: #8ec8f0;
+}
+
+.bubble .text {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.bubble .meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.msg.out .bubble .meta {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Media */
+.media-wrap {
+  margin: 2px 0 4px;
+  border-radius: 10px;
+  overflow: hidden;
+  max-width: 100%;
+  cursor: pointer;
+  background: #000;
+}
+
+.media-wrap img {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+}
+
+.media-wrap video {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  background: #000;
+}
+
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  min-width: 200px;
+}
+
+.file-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(42, 171, 238, 0.2);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-size {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.file-dl {
+  color: var(--accent);
+  font-size: 0.8rem;
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.file-dl:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Composer ---------- */
+.preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.preview-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 8px 8px 10px;
+  background: var(--composer);
+  border-top: 1px solid var(--border);
+}
+
+.composer-input-wrap {
+  flex: 1;
+  background: var(--bg);
+  border-radius: 20px;
+  padding: 8px 14px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.composer-input-wrap textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: none;
+  outline: none;
+  max-height: 140px;
+  line-height: 1.35;
+  padding: 0;
+}
+
+.send-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.send-btn:hover {
+  background: var(--accent-hover);
+}
+
+.send-btn:active {
+  transform: scale(0.95);
+}
+
+.send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upload-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(23, 33, 43, 0.95);
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  z-index: 10;
+}
+
+.upload-progress-bar {
+  height: 3px;
+  background: var(--accent);
+  width: 0%;
+  border-radius: 2px;
+  transition: width 0.2s;
+}
+
+/* ---------- Lightbox ---------- */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px 16px;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.4rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+}
+
+.lightbox-body {
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-body img,
+.lightbox-body video {
+  max-width: 100%;
+  max-height: calc(100vh - 80px);
+  border-radius: 4px;
+}
+
+/* Scrollbar */
+.messages::-webkit-scrollbar {
+  width: 6px;
+}
+.messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+
+@media (max-width: 600px) {
+  .msg {
+    max-width: 88%;
+  }
+  .login-card {
+    padding: 28px 20px 20px;
+  }
+}

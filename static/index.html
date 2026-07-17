@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#17212b" />
+  <title>Chat Transfer</title>
+  <link rel="stylesheet" href="/assets/app.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%232AABEE'/%3E%3Cpath d='M18 34l10 6 18-16-22 22-8-6z' fill='white'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <!-- Login -->
+  <div id="login-view" class="view login-view">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="logo-circle">CT</div>
+        <h1>Chat Transfer</h1>
+        <p class="muted">私有群聊 · 文本与文件传输</p>
+      </div>
+      <form id="login-form" autocomplete="off">
+        <label class="field">
+          <span>昵称</span>
+          <input id="nickname" type="text" maxlength="24" placeholder="显示在群聊中的名字" required />
+        </label>
+        <label class="field">
+          <span>管理员密码</span>
+          <input id="password" type="password" maxlength="256" placeholder="访问密码" required />
+        </label>
+        <p id="login-error" class="error hidden"></p>
+        <button type="submit" class="btn primary block" id="login-btn">进入群聊</button>
+      </form>
+      <p class="login-hint muted">所有通过验证的用户处于同一个群聊中</p>
+    </div>
+  </div>
+
+  <!-- Chat -->
+  <div id="chat-view" class="view chat-view hidden">
+    <header class="chat-header">
+      <div class="header-avatar">G</div>
+      <div class="header-info">
+        <div class="header-title">公共群聊</div>
+        <div class="header-sub"><span id="online-count">0</span> 人在线 · <span id="my-name"></span></div>
+      </div>
+      <button id="logout-btn" class="icon-btn" title="退出" aria-label="退出">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </header>
+
+    <main id="messages" class="messages" aria-live="polite"></main>
+
+    <div id="preview-bar" class="preview-bar hidden">
+      <div id="preview-label" class="preview-label"></div>
+      <button type="button" id="preview-cancel" class="icon-btn" aria-label="取消">✕</button>
+    </div>
+
+    <footer class="composer">
+      <input type="file" id="file-input" class="hidden" />
+      <button type="button" id="attach-btn" class="icon-btn attach" title="发送文件" aria-label="发送文件">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+        </svg>
+      </button>
+      <div class="composer-input-wrap">
+        <textarea id="message-input" rows="1" placeholder="输入消息..." maxlength="4000"></textarea>
+      </div>
+      <button type="button" id="send-btn" class="send-btn" title="发送" aria-label="发送">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </footer>
+
+    <div id="upload-progress" class="upload-progress hidden">
+      <div class="upload-progress-bar" id="upload-bar"></div>
+      <span id="upload-text">上传中…</span>
+    </div>
+  </div>
+
+  <!-- Lightbox for image/video -->
+  <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true">
+    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="关闭">✕</button>
+    <div id="lightbox-body" class="lightbox-body"></div>
+  </div>
+
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

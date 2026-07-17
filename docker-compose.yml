@@ -1,0 +1,22 @@
+services:
+  chat-transfer:
+    build: .
+    container_name: chat-transfer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      CHAT_BIND: "0.0.0.0:8080"
+      CHAT_PASSWORD: "${CHAT_PASSWORD:-change-me-now}"
+      CHAT_DATA_DIR: "/app/data"
+      CHAT_MAX_FILE_MB: "100"
+      CHAT_RETENTION_SECS: "${CHAT_RETENTION_SECS:-10800}"
+      CHAT_PURGE_INTERVAL_SECS: "${CHAT_PURGE_INTERVAL_SECS:-60}"
+      CHAT_SESSION_TTL_SECS: "${CHAT_SESSION_TTL_SECS:-10800}"
+      CHAT_SECURE_COOKIE: "${CHAT_SECURE_COOKIE:-false}"
+      RUST_LOG: "chat_transfer=info,tower_http=info"
+    volumes:
+      - chat_data:/app/data
+
+volumes:
+  chat_data:
