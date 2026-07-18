@@ -2,89 +2,312 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <meta name="theme-color" content="#17212b" />
-  <title>Chat Transfer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#080c14" />
+  <meta name="color-scheme" content="dark" />
+  <title>Chat Transfer · 私密共享空间</title>
   <link rel="stylesheet" href="/assets/app.css" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%232AABEE'/%3E%3Cpath d='M18 34l10 6 18-16-22 22-8-6z' fill='white'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%238b7cff'/%3E%3Cstop offset='1' stop-color='%2347c8ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='4' y='4' width='56' height='56' rx='18' fill='url(%23g)'/%3E%3Cpath d='M19 22h26v16H31l-8 7v-7h-4z' fill='white' fill-opacity='.96'/%3E%3C/svg%3E" />
 </head>
 <body>
+  <div class="ambient" aria-hidden="true">
+    <span class="ambient-orb orb-one"></span>
+    <span class="ambient-orb orb-two"></span>
+    <span class="ambient-orb orb-three"></span>
+    <span class="ambient-grid"></span>
+  </div>
+
   <!-- Login -->
   <div id="login-view" class="view login-view">
-    <div class="login-card">
-      <div class="login-logo">
-        <div class="logo-circle">CT</div>
-        <h1>Chat Transfer</h1>
-        <p class="muted">私有群聊 · 文本与文件传输</p>
-      </div>
-      <form id="login-form" autocomplete="off">
-        <label class="field">
-          <span>昵称</span>
-          <input id="nickname" type="text" maxlength="24" placeholder="显示在群聊中的名字" required />
-        </label>
-        <label class="field">
-          <span>管理员密码</span>
-          <input id="password" type="password" maxlength="256" placeholder="访问密码" required />
-        </label>
-        <p id="login-error" class="error hidden"></p>
-        <button type="submit" class="btn primary block" id="login-btn">进入群聊</button>
-      </form>
-      <p class="login-hint muted">所有通过验证的用户处于同一个群聊中</p>
-    </div>
+    <main class="login-shell">
+      <section class="login-story" aria-label="产品介绍">
+        <div class="brand brand-large">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M7.5 9.5h17v11h-9l-5.5 4.5v-4.5H7.5v-11Z" fill="currentColor" />
+              <circle cx="12" cy="15" r="1.25" fill="#7167ec" />
+              <circle cx="16" cy="15" r="1.25" fill="#7167ec" />
+              <circle cx="20" cy="15" r="1.25" fill="#7167ec" />
+            </svg>
+          </span>
+          <span class="brand-copy">
+            <strong>Chat Transfer</strong>
+            <small>PRIVATE SPACE</small>
+          </span>
+        </div>
+
+        <div class="story-copy">
+          <span class="eyebrow"><i></i> 安全、轻量、即时</span>
+          <h1>让每一次分享，<br /><span>都自然流动。</span></h1>
+          <p>为小团队准备的私密共享空间。消息、图片与文件实时抵达，保持连接，也保持简单。</p>
+        </div>
+
+        <div class="feature-grid" aria-label="核心特性">
+          <article class="feature-card">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M13 2 4.5 13h6L10 22l9.5-12h-6L13 2Z" />
+              </svg>
+            </span>
+            <div><strong>实时同步</strong><small>消息即刻送达</small></div>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="15" rx="3" />
+                <path d="m3 15 4.5-4.5a2 2 0 0 1 2.8 0L16 16m-2-2 1.5-1.5a2 2 0 0 1 2.8 0L21 15" />
+                <circle cx="16.5" cy="9.5" r="1.5" />
+              </svg>
+            </span>
+            <div><strong>多种内容</strong><small>图片、视频与文件</small></div>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M12 22a9 9 0 1 0-9-9" />
+                <path d="M3 4v6h6M12 7v6l4 2" />
+              </svg>
+            </span>
+            <div><strong>自动清理</strong><small>仅保留最近 3 小时</small></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="login-card" aria-labelledby="login-title">
+        <div class="mobile-brand brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M7.5 9.5h17v11h-9l-5.5 4.5v-4.5H7.5v-11Z" fill="currentColor" />
+              <circle cx="12" cy="15" r="1.25" fill="#7167ec" />
+              <circle cx="16" cy="15" r="1.25" fill="#7167ec" />
+              <circle cx="20" cy="15" r="1.25" fill="#7167ec" />
+            </svg>
+          </span>
+          <span class="brand-copy"><strong>Chat Transfer</strong><small>PRIVATE SPACE</small></span>
+        </div>
+
+        <header class="login-heading">
+          <span class="section-kicker">WELCOME BACK</span>
+          <h2 id="login-title">进入共享空间</h2>
+          <p>输入你的昵称与访问密码，开始安全分享。</p>
+        </header>
+
+        <form id="login-form" autocomplete="on" novalidate>
+          <label class="field" for="nickname">
+            <span class="field-label">昵称</span>
+            <span class="input-shell">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
+              </svg>
+              <input id="nickname" name="nickname" type="text" maxlength="24" autocomplete="nickname" placeholder="如何称呼你？" required />
+            </span>
+          </label>
+
+          <label class="field" for="password">
+            <span class="field-label">访问密码</span>
+            <span class="input-shell">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <rect x="4" y="10" width="16" height="11" rx="3" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2" />
+              </svg>
+              <input id="password" name="password" type="password" maxlength="256" autocomplete="current-password" placeholder="输入管理员密码" required />
+              <button type="button" id="password-toggle" class="password-toggle" aria-label="显示密码" aria-pressed="false">
+                <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                  <circle cx="12" cy="12" r="2.5" />
+                </svg>
+                <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="m3 3 18 18M10.6 6.2A9.8 9.8 0 0 1 12 6c6 0 9.5 6 9.5 6a15 15 0 0 1-2.1 2.8M6.4 6.5C3.9 8.3 2.5 12 2.5 12s3.5 6 9.5 6c1.3 0 2.5-.3 3.5-.7M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+                </svg>
+              </button>
+            </span>
+          </label>
+
+          <p id="login-error" class="error hidden" role="alert"></p>
+
+          <button type="submit" class="login-button" id="login-btn">
+            <span class="button-label">进入空间</span>
+            <span class="button-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14m-5-5 5 5-5 5" />
+              </svg>
+            </span>
+            <span class="button-spinner" aria-hidden="true"></span>
+          </button>
+        </form>
+
+        <div class="privacy-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M12 3 5 6v5c0 4.7 2.9 8.3 7 10 4.1-1.7 7-5.3 7-10V6l-7-3Z" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+          <span>通过验证的成员将进入同一个私密群聊</span>
+        </div>
+      </section>
+    </main>
   </div>
 
   <!-- Chat -->
   <div id="chat-view" class="view chat-view hidden">
-    <header class="chat-header">
-      <div class="header-avatar">G</div>
-      <div class="header-info">
-        <div class="header-title">公共群聊</div>
-        <div class="header-sub"><span id="online-count">0</span> 人在线 · <span id="my-name"></span></div>
-      </div>
-      <button id="logout-btn" class="icon-btn" title="退出" aria-label="退出">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-          <polyline points="16 17 21 12 16 7"/>
-          <line x1="21" y1="12" x2="9" y2="12"/>
-        </svg>
-      </button>
-    </header>
+    <div class="workspace">
+      <aside class="sidebar" aria-label="空间导航">
+        <div class="brand sidebar-brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M7.5 9.5h17v11h-9l-5.5 4.5v-4.5H7.5v-11Z" fill="currentColor" />
+              <circle cx="12" cy="15" r="1.25" fill="#7167ec" />
+              <circle cx="16" cy="15" r="1.25" fill="#7167ec" />
+              <circle cx="20" cy="15" r="1.25" fill="#7167ec" />
+            </svg>
+          </span>
+          <span class="brand-copy"><strong>Chat Transfer</strong><small>PRIVATE SPACE</small></span>
+        </div>
 
-    <main id="messages" class="messages" aria-live="polite"></main>
+        <div class="sidebar-section">
+          <span class="sidebar-label">共享空间</span>
+          <div class="room-item active" aria-current="page">
+            <span class="room-avatar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M8.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM2 20a6.5 6.5 0 0 1 11.6-4M16 11a3 3 0 1 0 0-6M15 14a6 6 0 0 1 7 6" />
+              </svg>
+            </span>
+            <span class="room-copy"><strong>公共群聊</strong><small><i class="presence-dot"></i><span id="sidebar-online-count">0</span> 人在线</small></span>
+            <span class="room-chevron" aria-hidden="true">›</span>
+          </div>
+        </div>
 
-    <div id="preview-bar" class="preview-bar hidden">
-      <div id="preview-label" class="preview-label"></div>
-      <button type="button" id="preview-cancel" class="icon-btn" aria-label="取消">✕</button>
-    </div>
+        <div class="sidebar-spacer"></div>
 
-    <footer class="composer">
-      <input type="file" id="file-input" class="hidden" />
-      <button type="button" id="attach-btn" class="icon-btn attach" title="发送文件" aria-label="发送文件">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-        </svg>
-      </button>
-      <div class="composer-input-wrap">
-        <textarea id="message-input" rows="1" placeholder="输入消息..." maxlength="4000"></textarea>
-      </div>
-      <button type="button" id="send-btn" class="send-btn" title="发送" aria-label="发送">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-        </svg>
-      </button>
-    </footer>
+        <article class="retention-card">
+          <span class="retention-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M12 22a9 9 0 1 0-9-9" />
+              <path d="M3 4v6h6M12 7v6l4 2" />
+            </svg>
+          </span>
+          <strong>轻量留存</strong>
+          <p>消息与文件仅保留最近 3 小时，过期后自动清理。</p>
+        </article>
 
-    <div id="upload-progress" class="upload-progress hidden">
-      <div class="upload-progress-bar" id="upload-bar"></div>
-      <span id="upload-text">上传中…</span>
+        <div class="user-card">
+          <span class="user-avatar" id="side-avatar">U</span>
+          <span class="user-copy"><small>当前身份</small><strong id="my-name">—</strong></span>
+          <button id="logout-btn" class="icon-btn logout-button" type="button" title="退出登录" aria-label="退出登录">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5m5 5H9" />
+            </svg>
+          </button>
+        </div>
+      </aside>
+
+      <section id="chat-surface" class="chat-surface" aria-label="公共群聊">
+        <header class="chat-header">
+          <div class="chat-room-avatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M8.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM2 20a6.5 6.5 0 0 1 11.6-4M16 11a3 3 0 1 0 0-6M15 14a6 6 0 0 1 7 6" />
+            </svg>
+          </div>
+          <div class="header-info">
+            <div class="header-title">公共群聊</div>
+            <div class="header-sub">
+              <i id="connection-dot" class="presence-dot connecting"></i>
+              <span id="connection-label">正在连接</span>
+              <span class="sub-divider">·</span>
+              <span><span id="online-count">0</span> 人在线</span>
+            </div>
+          </div>
+          <div class="header-actions">
+            <span class="retention-pill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+              </svg>
+              3 小时留存
+            </span>
+            <button id="mobile-logout-btn" class="icon-btn mobile-logout" type="button" title="退出登录" aria-label="退出登录">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5m5 5H9" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <main id="messages" class="messages" aria-live="polite" aria-label="消息列表"></main>
+
+        <button type="button" id="scroll-latest" class="scroll-latest hidden" aria-label="回到最新消息">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+          <span>最新消息</span>
+        </button>
+
+        <div class="composer-zone">
+          <div id="preview-bar" class="preview-bar hidden">
+            <span class="preview-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+                <path d="M14 2v6h6M8 14h8M8 18h5" />
+              </svg>
+            </span>
+            <div class="preview-copy"><small>准备发送</small><div id="preview-label" class="preview-label"></div></div>
+            <button type="button" id="preview-cancel" class="icon-btn preview-cancel" aria-label="移除附件">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" /></svg>
+            </button>
+          </div>
+
+          <footer class="composer">
+            <input type="file" id="file-input" class="hidden" />
+            <button type="button" id="attach-btn" class="icon-btn attach" title="添加文件" aria-label="添加文件">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+                <path d="m20.5 11.5-8.8 8.8a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 1 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" />
+              </svg>
+            </button>
+            <div class="composer-input-wrap">
+              <textarea id="message-input" rows="1" placeholder="写点什么…" maxlength="4000" aria-label="消息内容"></textarea>
+              <span class="composer-hint">Enter 发送 · Shift + Enter 换行</span>
+            </div>
+            <button type="button" id="send-btn" class="send-btn" title="发送消息" aria-label="发送消息" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="m5 12 14-7-4.5 14-2.7-5.2L5 12Z" />
+                <path d="m11.8 13.8 3.6-3.6" />
+              </svg>
+            </button>
+          </footer>
+        </div>
+
+        <div id="upload-progress" class="upload-progress hidden" role="status">
+          <div class="upload-status-row">
+            <span class="upload-spinner" aria-hidden="true"></span>
+            <span id="upload-text">正在上传…</span>
+          </div>
+          <div class="upload-track"><div class="upload-progress-bar" id="upload-bar"></div></div>
+        </div>
+
+        <div id="drop-overlay" class="drop-overlay" aria-hidden="true">
+          <div class="drop-card">
+            <span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 16V4m-5 5 5-5 5 5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+              </svg>
+            </span>
+            <strong>释放以上传文件</strong>
+            <small>图片、视频或任意文件均可</small>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 
   <!-- Lightbox for image/video -->
-  <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true">
-    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="关闭">✕</button>
+  <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true" aria-label="媒体预览">
+    <div class="lightbox-backdrop"></div>
+    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="关闭预览">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+    </button>
     <div id="lightbox-body" class="lightbox-body"></div>
   </div>
+
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
   <script src="/assets/app.js" defer></script>
 </body>
