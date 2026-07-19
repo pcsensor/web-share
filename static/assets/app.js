@@ -6,12 +6,49 @@
 
   const loginView = $("#login-view");
   const chatView = $("#chat-view");
+
+  const panels = {
+    login: $("#panel-login"),
+    register: $("#panel-register"),
+    status: $("#panel-status"),
+    totpSetup: $("#panel-totp-setup"),
+    recovery: $("#panel-recovery"),
+    twofa: $("#panel-2fa"),
+  };
+
   const loginForm = $("#login-form");
   const loginError = $("#login-error");
   const loginBtn = $("#login-btn");
-  const nicknameInput = $("#nickname");
-  const passwordInput = $("#password");
-  const passwordToggle = $("#password-toggle");
+  const loginUsername = $("#login-username");
+  const loginPassword = $("#login-password");
+  const loginPasswordToggle = $("#login-password-toggle");
+
+  const registerForm = $("#register-form");
+  const registerError = $("#register-error");
+  const registerBtn = $("#register-btn");
+
+  const statusTitle = $("#status-title");
+  const statusMessage = $("#status-message");
+  const statusLogoutBtn = $("#status-logout-btn");
+
+  const totpQr = $("#totp-qr");
+  const totpSecret = $("#totp-secret");
+  const totpSetupForm = $("#totp-setup-form");
+  const totpSetupCode = $("#totp-setup-code");
+  const totpSetupError = $("#totp-setup-error");
+  const totpSetupBtn = $("#totp-setup-btn");
+
+  const recoveryList = $("#recovery-codes-list");
+  const recoveryContinueBtn = $("#recovery-continue-btn");
+
+  const twofaForm = $("#twofa-form");
+  const twofaCode = $("#twofa-code");
+  const twofaError = $("#twofa-error");
+  const twofaBtn = $("#twofa-btn");
+  const trustDevice = $("#trust-device");
+  const recoverForm = $("#recover-form");
+  const recoverCode = $("#recover-code");
+  const recoverError = $("#recover-error");
 
   const chatSurface = $("#chat-surface");
   const messagesEl = $("#messages");
@@ -24,6 +61,7 @@
   const sidebarOnlineCount = $("#sidebar-online-count");
   const myName = $("#my-name");
   const sideAvatar = $("#side-avatar");
+  const adminLink = $("#admin-link");
   const connectionDot = $("#connection-dot");
   const connectionLabel = $("#connection-label");
   const sidebarPresence = $(".room-copy .presence-dot");
@@ -42,6 +80,7 @@
   const toastRegion = $("#toast-region");
 
   let me = null;
+  let pendingRecoveryCodes = null;
   let ws = null;
   let wsRetry = 0;
   let wsGeneration = 0;
@@ -93,24 +132,73 @@
     apply();
   }
 
-  async function trySession() {
-    try {
-      me = await api("/api/me");
-      showChat(false);
-      return true;
-    } catch {
-      me = null;
-      showLogin(false);
-      return false;
-    }
+  function showAuthPanel(name) {
+    Object.entries(panels).forEach(([key, el]) => {
+      if (el) el.classList.toggle("hidden", key !== name);
+    });
+    swapView("login", false);
   }
 
-  function showLogin(animate = true) {
+  function routeByUser(user, animate = true) {
+    me = user;
+    const step = user.next_step;
+
+    if (step === "chat") {
+      if (pendingRecoveryCodes?.length) {
+        showRecoveryCodes(pendingRecoveryCodes);
+        return;
+      }
+      showChat(animate);
+      return;
+    }
+
     closeWs();
     setConnection("未连接", "offline");
     updateOnlineCount(0);
-    swapView("login", animate);
-    window.requestAnimationFrame(() => nicknameInput.focus({ preventScroll: true }));
+
+    if (step === "wait_approval") {
+      statusTitle.textContent = "等待审核";
+      statusMessage.textContent = "你的账号已提交，管理员通过后即可登录绑定验证器。";
+      showAuthPanel("status");
+      return;
+    }
+    if (step === "rejected") {
+      statusTitle.textContent = "未通过审核";
+      statusMessage.textContent = "账号未通过审核，请联系管理员。";
+      showAuthPanel("status");
+      return;
+    }
+    if (step === "disabled") {
+      statusTitle.textContent = "账号已停用";
+      statusMessage.textContent = "你的账号已被管理员停用。";
+      showAuthPanel("status");
+      return;
+    }
+    if (step === "setup_totp") {
+      showAuthPanel("totpSetup");
+      startTotpSetup();
+      return;
+    }
+    if (step === "verify_2fa") {
+      showAuthPanel("twofa");
+      applyPublicConfig(publicConfig);
+      window.requestAnimationFrame(() => twofaCode?.focus({ preventScroll: true }));
+      return;
+    }
+
+    showAuthPanel("login");
+  }
+
+  async function trySession() {
+    try {
+      const user = await api("/api/me");
+      routeByUser(user, false);
+      return true;
+    } catch {
+      me = null;
+      showAuthPanel("login");
+      return false;
+    }
   }
 
   function showChat(animate = true) {
@@ -118,76 +206,233 @@
     myName.textContent = nickname;
     sideAvatar.textContent = getInitials(nickname);
     sideAvatar.style.setProperty("--avatar-hue", String(hueFor(nickname)));
+    if (adminLink) {
+      adminLink.classList.toggle("hidden", me?.role !== "admin");
+    }
     swapView("chat", animate);
     updateComposerState();
     connectWs();
     window.requestAnimationFrame(() => messageInput.focus({ preventScroll: true }));
   }
 
-  function setLoginLoading(value) {
-    loginBtn.disabled = value;
-    loginBtn.classList.toggle("is-loading", value);
-    loginBtn.setAttribute("aria-busy", String(value));
+  function setButtonLoading(btn, value) {
+    if (!btn) return;
+    btn.disabled = value;
+    btn.classList.toggle("is-loading", value);
+    btn.setAttribute("aria-busy", String(value));
   }
 
-  function showLoginError(message) {
-    loginError.textContent = message;
-    loginError.classList.remove("hidden");
-    loginForm.classList.remove("login-form-error");
-    void loginForm.offsetWidth;
-    loginForm.classList.add("login-form-error");
+  function showFormError(el, form, message) {
+    if (!el) return;
+    el.textContent = message;
+    el.classList.remove("hidden");
+    if (form) {
+      form.classList.remove("login-form-error");
+      void form.offsetWidth;
+      form.classList.add("login-form-error");
+    }
   }
 
-  function clearLoginError() {
-    loginError.classList.add("hidden");
-    loginForm.classList.remove("login-form-error");
+  function clearFormError(el, form) {
+    if (el) el.classList.add("hidden");
+    form?.classList.remove("login-form-error");
   }
 
-  loginForm.addEventListener("submit", async (event) => {
+  $("#goto-register")?.addEventListener("click", () => {
+    clearFormError(loginError, loginForm);
+    showAuthPanel("register");
+  });
+  $("#goto-login")?.addEventListener("click", () => {
+    clearFormError(registerError, registerForm);
+    showAuthPanel("login");
+  });
+
+  loginForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    clearLoginError();
+    clearFormError(loginError, loginForm);
 
-    const nickname = nicknameInput.value.trim();
-    const password = passwordInput.value;
-    if (!nickname || !password) {
-      showLoginError(!nickname ? "请先输入你的昵称" : "请输入访问密码");
-      (!nickname ? nicknameInput : passwordInput).focus();
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value;
+    if (!username || !password) {
+      showFormError(loginError, loginForm, !username ? "请输入用户名" : "请输入密码");
       return;
     }
 
-    setLoginLoading(true);
+    setButtonLoading(loginBtn, true);
     try {
-      const data = await api("/api/login", {
+      const data = await api("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ nickname, password }),
+        body: JSON.stringify({ username, password }),
       });
-      me = data.user;
-      passwordInput.value = "";
-      showChat(true);
+      loginPassword.value = "";
+      routeByUser(data.user, true);
     } catch (err) {
       const message = err.status === 429
         ? "尝试次数过多，请稍后再试"
-        : err.message === "未登录或会话已过期" || err.status === 401
-          ? "访问密码不正确，请重新输入"
+        : err.status === 401
+          ? "用户名或密码错误（管理员：.env 中 bootstrap 密码仅首次建库生效）"
           : err.message || "登录失败，请稍后重试";
-      showLoginError(message);
-      passwordInput.select();
+      showFormError(loginError, loginForm, message);
+      loginPassword.select();
     } finally {
-      setLoginLoading(false);
+      setButtonLoading(loginBtn, false);
     }
   });
 
-  [nicknameInput, passwordInput].forEach((input) => {
-    input.addEventListener("input", clearLoginError);
+  registerForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearFormError(registerError, registerForm);
+
+    const username = $("#reg-username").value.trim();
+    const display_name = $("#reg-display-name").value.trim();
+    const password = $("#reg-password").value;
+    const password2 = $("#reg-password2").value;
+    const invite_code = ($("#reg-invite")?.value || "").trim();
+
+    if (!username || !display_name || !password) {
+      showFormError(registerError, registerForm, "请填写完整信息");
+      return;
+    }
+    if (password !== password2) {
+      showFormError(registerError, registerForm, "两次密码不一致");
+      return;
+    }
+
+    setButtonLoading(registerBtn, true);
+    try {
+      const data = await api("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          username,
+          password,
+          display_name,
+          invite_code: invite_code || null,
+        }),
+      });
+      const msg = data?.message
+        || (data?.via_invite
+          ? "注册成功，请登录并绑定身份验证器"
+          : "注册成功，请等待管理员审核后登录");
+      showToast(msg, "success");
+      registerForm.reset();
+      showAuthPanel("login");
+    } catch (err) {
+      showFormError(registerError, registerForm, err.message || "注册失败");
+    } finally {
+      setButtonLoading(registerBtn, false);
+    }
   });
 
-  passwordToggle.addEventListener("click", () => {
-    const willShow = passwordInput.type === "password";
-    passwordInput.type = willShow ? "text" : "password";
-    passwordToggle.classList.toggle("is-visible", willShow);
-    passwordToggle.setAttribute("aria-pressed", String(willShow));
-    passwordToggle.setAttribute("aria-label", willShow ? "隐藏密码" : "显示密码");
-    passwordInput.focus({ preventScroll: true });
+  loginPasswordToggle?.addEventListener("click", () => {
+    const willShow = loginPassword.type === "password";
+    loginPassword.type = willShow ? "text" : "password";
+    loginPasswordToggle.classList.toggle("is-visible", willShow);
+    loginPasswordToggle.setAttribute("aria-pressed", String(willShow));
+    loginPasswordToggle.setAttribute("aria-label", willShow ? "隐藏密码" : "显示密码");
+    loginPassword.focus({ preventScroll: true });
+  });
+
+  async function startTotpSetup() {
+    totpQr.innerHTML = "";
+    totpSecret.textContent = "加载中…";
+    try {
+      const data = await api("/api/auth/totp/setup/start", { method: "POST" });
+      totpSecret.textContent = data.secret_base32 || "";
+      if (data.qr_svg) {
+        totpQr.innerHTML = data.qr_svg;
+      }
+      totpSetupCode.value = "";
+      window.requestAnimationFrame(() => totpSetupCode.focus({ preventScroll: true }));
+    } catch (err) {
+      showFormError(totpSetupError, totpSetupForm, err.message || "无法开始绑定");
+    }
+  }
+
+  totpSetupForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearFormError(totpSetupError, totpSetupForm);
+    const code = totpSetupCode.value.trim();
+    if (code.length !== 6) {
+      showFormError(totpSetupError, totpSetupForm, "请输入 6 位验证码");
+      return;
+    }
+    setButtonLoading(totpSetupBtn, true);
+    try {
+      const data = await api("/api/auth/totp/setup/confirm", {
+        method: "POST",
+        body: JSON.stringify({ code }),
+      });
+      if (data.recovery_codes?.length) {
+        pendingRecoveryCodes = data.recovery_codes;
+      }
+      routeByUser(data.user, true);
+    } catch (err) {
+      showFormError(totpSetupError, totpSetupForm, err.message || "绑定失败");
+    } finally {
+      setButtonLoading(totpSetupBtn, false);
+    }
+  });
+
+  function showRecoveryCodes(codes) {
+    recoveryList.replaceChildren();
+    codes.forEach((code) => {
+      const li = document.createElement("li");
+      li.textContent = code;
+      recoveryList.appendChild(li);
+    });
+    showAuthPanel("recovery");
+  }
+
+  recoveryContinueBtn?.addEventListener("click", () => {
+    pendingRecoveryCodes = null;
+    if (me) showChat(true);
+  });
+
+  twofaForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearFormError(twofaError, twofaForm);
+    const code = twofaCode.value.trim();
+    if (code.length !== 6) {
+      showFormError(twofaError, twofaForm, "请输入 6 位验证码");
+      return;
+    }
+    setButtonLoading(twofaBtn, true);
+    try {
+      const data = await api("/api/auth/2fa/verify", {
+        method: "POST",
+        body: JSON.stringify({
+          code,
+          trust_device: Boolean(trustDevice?.checked),
+        }),
+      });
+      twofaCode.value = "";
+      routeByUser(data.user, true);
+    } catch (err) {
+      showFormError(twofaError, twofaForm, err.message || "验证失败");
+    } finally {
+      setButtonLoading(twofaBtn, false);
+    }
+  });
+
+  recoverForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearFormError(recoverError, recoverForm);
+    const recovery_code = recoverCode.value.trim();
+    if (!recovery_code) {
+      showFormError(recoverError, recoverForm, "请输入恢复码");
+      return;
+    }
+    try {
+      const data = await api("/api/auth/2fa/recover", {
+        method: "POST",
+        body: JSON.stringify({ recovery_code }),
+      });
+      recoverCode.value = "";
+      showToast("恢复码已使用，请重新绑定验证器", "success");
+      routeByUser(data.user, true);
+    } catch (err) {
+      showFormError(recoverError, recoverForm, err.message || "恢复失败");
+    }
   });
 
   async function logout() {
@@ -198,19 +443,152 @@
     try {
       await api("/api/logout", { method: "POST" });
     } catch {
-      // The local session is cleared even if the request cannot complete.
+      // ignore
     }
 
     me = null;
+    pendingRecoveryCodes = null;
     uploading = false;
     seenIds.clear();
     messagesEl.replaceChildren();
     clearPending();
     closeLightbox();
-    showLogin(true);
+    closeWs();
+    setConnection("未连接", "offline");
+    updateOnlineCount(0);
+    if (adminLink) adminLink.classList.add("hidden");
+    showAuthPanel("login");
+    window.requestAnimationFrame(() => loginUsername?.focus({ preventScroll: true }));
   }
 
   logoutButtons.forEach((button) => button.addEventListener("click", logout));
+  statusLogoutBtn?.addEventListener("click", logout);
+  $("#totp-setup-logout")?.addEventListener("click", logout);
+  $("#twofa-logout")?.addEventListener("click", logout);
+
+  // ---------- Security panel (devices + password) ----------
+  const securityPanel = $("#security-panel");
+  const deviceList = $("#device-list");
+  const deviceEmpty = $("#device-empty");
+  const passwordForm = $("#password-form");
+  const passwordError = $("#password-error");
+  const passwordBtn = $("#password-btn");
+
+  function openSecurityPanel() {
+    if (!securityPanel || !canChat()) return;
+    securityPanel.classList.remove("hidden");
+    loadDevices();
+  }
+
+  function closeSecurityPanel() {
+    securityPanel?.classList.add("hidden");
+    clearFormError(passwordError, passwordForm);
+    passwordForm?.reset();
+  }
+
+  $("#security-btn")?.addEventListener("click", openSecurityPanel);
+  $("#mobile-security-btn")?.addEventListener("click", openSecurityPanel);
+  $("#security-close")?.addEventListener("click", closeSecurityPanel);
+  $("#security-backdrop")?.addEventListener("click", closeSecurityPanel);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && securityPanel && !securityPanel.classList.contains("hidden")) {
+      closeSecurityPanel();
+    }
+  });
+
+  function shortLabel(label) {
+    if (!label) return "未知设备";
+    const s = String(label);
+    if (s.length <= 48) return s;
+    return `${s.slice(0, 45)}…`;
+  }
+
+  async function loadDevices() {
+    if (!deviceList) return;
+    deviceList.replaceChildren();
+    try {
+      const devices = await api("/api/security/devices");
+      if (!devices.length) {
+        deviceEmpty?.classList.remove("hidden");
+        return;
+      }
+      deviceEmpty?.classList.add("hidden");
+      for (const d of devices) {
+        const li = document.createElement("li");
+        li.className = "device-item";
+        const meta = document.createElement("div");
+        meta.className = "device-meta";
+        const title = document.createElement("strong");
+        title.textContent = d.current ? "当前设备" : shortLabel(d.label);
+        const sub = document.createElement("small");
+        const last = d.last_seen ? new Date(d.last_seen).toLocaleString() : "—";
+        const exp = d.expires_at ? new Date(d.expires_at).toLocaleDateString() : "—";
+        sub.textContent = d.current
+          ? `最近活跃 ${last} · 有效至 ${exp}`
+          : `${shortLabel(d.label)} · 最近 ${last}`;
+        meta.append(title, sub);
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "device-revoke";
+        btn.textContent = d.current ? "吊销" : "吊销";
+        btn.title = "吊销此设备信任";
+        btn.addEventListener("click", async () => {
+          if (!confirm(d.current ? "吊销当前设备后，下次登录需验证码。确定？" : "确定吊销该设备？")) return;
+          btn.disabled = true;
+          try {
+            await api(`/api/security/devices/${encodeURIComponent(d.id)}`, { method: "DELETE" });
+            showToast("已吊销设备", "success");
+            await loadDevices();
+          } catch (err) {
+            showToast(err.message || "吊销失败");
+            btn.disabled = false;
+          }
+        });
+
+        li.append(meta, btn);
+        deviceList.appendChild(li);
+      }
+    } catch (err) {
+      deviceEmpty?.classList.remove("hidden");
+      if (deviceEmpty) deviceEmpty.textContent = err.message || "加载失败";
+    }
+  }
+
+  passwordForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearFormError(passwordError, passwordForm);
+    const current_password = $("#pw-current").value;
+    const new_password = $("#pw-new").value;
+    const new2 = $("#pw-new2").value;
+    if (!current_password || !new_password) {
+      showFormError(passwordError, passwordForm, "请填写完整");
+      return;
+    }
+    if (new_password.length < 8) {
+      showFormError(passwordError, passwordForm, "新密码至少 8 位");
+      return;
+    }
+    if (new_password !== new2) {
+      showFormError(passwordError, passwordForm, "两次新密码不一致");
+      return;
+    }
+    setButtonLoading(passwordBtn, true);
+    try {
+      await api("/api/security/password", {
+        method: "POST",
+        body: JSON.stringify({ current_password, new_password }),
+      });
+      passwordForm.reset();
+      showToast("密码已更新，其他设备信任已清除", "success");
+      await loadDevices();
+    } catch (err) {
+      showFormError(passwordError, passwordForm, err.message || "修改失败");
+    } finally {
+      setButtonLoading(passwordBtn, false);
+    }
+  });
 
   // ---------- WebSocket ----------
   function wsUrl() {
@@ -278,6 +656,12 @@
           break;
         case "error":
           showToast(data.message || "消息处理失败");
+          break;
+        case "force_logout":
+          if (!me || data.user_id === me.id) {
+            showToast(data.reason || "你已被强制下线");
+            logout();
+          }
           break;
         default:
           break;
@@ -785,27 +1169,31 @@
     return Array.from(event.dataTransfer?.types || []).includes("Files");
   }
 
+  function canChat() {
+    return Boolean(me && me.next_step === "chat");
+  }
+
   document.addEventListener("dragenter", (event) => {
-    if (!me || !isFileDrag(event)) return;
+    if (!canChat() || !isFileDrag(event)) return;
     event.preventDefault();
     dragDepth += 1;
     chatSurface.classList.add("is-dragging");
   });
 
   document.addEventListener("dragover", (event) => {
-    if (!me || !isFileDrag(event)) return;
+    if (!canChat() || !isFileDrag(event)) return;
     event.preventDefault();
     if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
   });
 
   document.addEventListener("dragleave", (event) => {
-    if (!me || dragDepth === 0) return;
+    if (!canChat() || dragDepth === 0) return;
     dragDepth = Math.max(0, dragDepth - 1);
     if (dragDepth === 0) chatSurface.classList.remove("is-dragging");
   });
 
   document.addEventListener("drop", (event) => {
-    if (!me || !isFileDrag(event)) return;
+    if (!canChat() || !isFileDrag(event)) return;
     event.preventDefault();
     dragDepth = 0;
     chatSurface.classList.remove("is-dragging");
@@ -841,6 +1229,37 @@
     }, 3600);
   }
 
-  // Boot
-  trySession();
+  // ---------- Public config (UI labels) ----------
+  let publicConfig = { device_trust_days: null, invite_ttl_hours: 24, registration_open: true };
+
+  function applyPublicConfig(cfg) {
+    if (!cfg || typeof cfg !== "object") return;
+    publicConfig = { ...publicConfig, ...cfg };
+    const days = Number(publicConfig.device_trust_days);
+    const trustLabel = $("#trust-device-label");
+    if (trustLabel) {
+      trustLabel.textContent = Number.isFinite(days) && days > 0
+        ? `信任此设备 ${days} 天`
+        : "信任此设备";
+    }
+  }
+
+  async function loadPublicConfig() {
+    try {
+      const cfg = await api("/api/config");
+      applyPublicConfig(cfg);
+      if (cfg && cfg.device_trust_days != null) {
+        console.info("[chat] device_trust_days =", cfg.device_trust_days);
+      }
+    } catch (err) {
+      console.warn("[chat] failed to load /api/config", err);
+      applyPublicConfig(publicConfig);
+    }
+  }
+
+  // Boot: always load config first so 2FA label matches server env
+  (async () => {
+    await loadPublicConfig();
+    await trySession();
+  })();
 })();

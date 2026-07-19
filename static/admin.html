@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#080c14" />
+  <meta name="color-scheme" content="dark" />
+  <title>管理后台 · Chat Transfer</title>
+  <link rel="stylesheet" href="/assets/app.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%238b7cff'/%3E%3Cstop offset='1' stop-color='%2347c8ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='4' y='4' width='56' height='56' rx='18' fill='url(%23g)'/%3E%3Cpath d='M19 22h26v16H31l-8 7v-7h-4z' fill='white' fill-opacity='.96'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <span class="ambient-orb orb-one"></span>
+    <span class="ambient-orb orb-two"></span>
+    <span class="ambient-orb orb-three"></span>
+    <span class="ambient-grid"></span>
+  </div>
+
+  <div class="admin-page">
+    <header class="admin-header">
+      <div>
+        <div class="brand brand-large" style="margin-bottom:0.75rem">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M7.5 9.5h17v11h-9l-5.5 4.5v-4.5H7.5v-11Z" fill="currentColor" />
+              <circle cx="12" cy="15" r="1.25" fill="#7167ec" />
+              <circle cx="16" cy="15" r="1.25" fill="#7167ec" />
+              <circle cx="20" cy="15" r="1.25" fill="#7167ec" />
+            </svg>
+          </span>
+          <span class="brand-copy">
+            <strong>Chat Transfer</strong>
+            <small>ADMIN</small>
+          </span>
+        </div>
+        <h1>用户管理</h1>
+        <p>审核注册、邀请码、启用/停用、重置身份验证器</p>
+      </div>
+      <div class="admin-actions">
+        <button type="button" class="admin-btn" id="refresh-btn">刷新</button>
+        <a class="admin-btn" href="/">返回聊天</a>
+        <button type="button" class="admin-btn primary" id="logout-btn">退出</button>
+      </div>
+    </header>
+
+    <div id="admin-error" class="admin-error hidden" role="alert"></div>
+
+    <!-- Auth gate: login / 2FA / TOTP bind (do not bounce to /) -->
+    <div id="admin-auth" class="admin-auth-card hidden">
+      <div id="admin-auth-login" class="admin-auth-panel">
+        <h2>管理员登录</h2>
+        <p class="invite-hint">使用管理员账号登录。若已绑定验证器且在新设备上，登录后还需输入验证码。首次或重置后需绑定验证器。</p>
+        <form id="admin-login-form" class="security-form" novalidate>
+          <label class="field" for="admin-user">
+            <span class="field-label">用户名</span>
+            <span class="input-shell"><input id="admin-user" type="text" autocomplete="username" required /></span>
+          </label>
+          <label class="field" for="admin-pass">
+            <span class="field-label">密码</span>
+            <span class="input-shell"><input id="admin-pass" type="password" autocomplete="current-password" required /></span>
+          </label>
+          <p id="admin-login-error" class="error hidden" role="alert"></p>
+          <button type="submit" class="login-button" id="admin-login-btn">
+            <span class="button-label">登录</span>
+            <span class="button-spinner" aria-hidden="true"></span>
+          </button>
+        </form>
+        <p class="invite-hint" style="margin-top:1rem">
+          提示：`.env` 里的 <code>CHAT_BOOTSTRAP_ADMIN_PASSWORD</code> 仅在<strong>首次创建</strong>管理员时生效。
+          若改过 .env 却登不上，可临时设置 <code>CHAT_RESET_ADMIN_PASSWORD=true</code> 后重启一次。
+        </p>
+      </div>
+
+      <div id="admin-auth-2fa" class="admin-auth-panel hidden">
+        <h2>身份验证</h2>
+        <p class="invite-hint">请输入身份验证器中的 6 位验证码。</p>
+        <form id="admin-2fa-form" class="security-form" novalidate>
+          <label class="field" for="admin-2fa-code">
+            <span class="field-label">验证码</span>
+            <span class="input-shell"><input id="admin-2fa-code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required /></span>
+          </label>
+          <label class="check-row" for="admin-trust">
+            <input type="checkbox" id="admin-trust" checked />
+            <span id="admin-trust-label">信任此设备</span>
+          </label>
+          <p id="admin-2fa-error" class="error hidden" role="alert"></p>
+          <button type="submit" class="login-button" id="admin-2fa-btn">
+            <span class="button-label">验证</span>
+            <span class="button-spinner" aria-hidden="true"></span>
+          </button>
+        </form>
+      </div>
+
+      <div id="admin-auth-totp" class="admin-auth-panel hidden">
+        <h2>绑定身份验证器</h2>
+        <p class="invite-hint">扫码或手动输入密钥，然后输入当前 6 位验证码完成绑定。</p>
+        <div id="admin-totp-qr" class="totp-qr"></div>
+        <div class="totp-secret-box">
+          <span class="field-label">手动密钥</span>
+          <code id="admin-totp-secret" class="totp-secret"></code>
+        </div>
+        <form id="admin-totp-form" class="security-form" novalidate>
+          <label class="field" for="admin-totp-code">
+            <span class="field-label">6 位验证码</span>
+            <span class="input-shell"><input id="admin-totp-code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required /></span>
+          </label>
+          <p id="admin-totp-error" class="error hidden" role="alert"></p>
+          <button type="submit" class="login-button" id="admin-totp-btn">
+            <span class="button-label">确认绑定</span>
+            <span class="button-spinner" aria-hidden="true"></span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div id="admin-main" class="hidden">
+    <div class="admin-tabs" role="tablist">
+      <button type="button" class="admin-tab active" data-filter="pending_approval">待审核</button>
+      <button type="button" class="admin-tab" data-filter="">全部</button>
+      <button type="button" class="admin-tab" data-filter="active">已激活</button>
+      <button type="button" class="admin-tab" data-filter="approved_unbound">待绑定</button>
+      <button type="button" class="admin-tab" data-filter="disabled">已停用</button>
+      <button type="button" class="admin-tab" data-filter="__invites">邀请码</button>
+      <button type="button" class="admin-tab" data-filter="__audit">审计日志</button>
+    </div>
+
+    <div class="admin-card">
+      <div id="users-panel">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>用户</th>
+              <th>昵称</th>
+              <th>状态</th>
+              <th>注册时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="users-body"></tbody>
+        </table>
+        <div id="users-empty" class="admin-empty hidden">暂无用户</div>
+      </div>
+      <div id="invites-panel" class="hidden">
+        <div class="invite-toolbar">
+          <p class="invite-hint">一次性邀请码，默认 <strong>24 小时</strong>内有效；注册成功后作废且无需审核。可随时吊销未使用的码。列表展示全部历史记录。</p>
+          <button type="button" class="admin-btn primary" id="create-invite-btn">生成邀请码</button>
+        </div>
+        <div id="invite-fresh" class="invite-fresh hidden" role="status">
+          <span>新邀请码（请立即复制分享）：</span>
+          <code id="invite-fresh-code"></code>
+          <span id="invite-fresh-exp" class="invite-exp"></span>
+          <button type="button" class="admin-btn" id="copy-invite-btn">复制</button>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>邀请码</th>
+              <th>状态</th>
+              <th>创建时间</th>
+              <th>过期时间</th>
+              <th>使用时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="invites-body"></tbody>
+        </table>
+        <div id="invites-empty" class="admin-empty hidden">暂无邀请码</div>
+      </div>
+      <div id="audit-panel" class="hidden">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>动作</th>
+              <th>管理员</th>
+              <th>目标</th>
+            </tr>
+          </thead>
+          <tbody id="audit-body"></tbody>
+        </table>
+        <div id="audit-empty" class="admin-empty hidden">暂无审计记录</div>
+      </div>
+    </div>
+    </div><!-- #admin-main -->
+  </div>
+
+  <div id="toast-region" class="toast-region" aria-live="polite"></div>
+  <script src="/assets/admin.js" defer></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-use crate::auth::{session_from_cookie_header, AuthUser};
+use crate::auth::{session_from_cookie_header, FullUser};
 use crate::db::Db;
 use crate::models::{
     FileMeta, Message, MessageKind, TextMessageRequest, WsClientEvent, WsServerEvent,
@@ -129,19 +129,19 @@ impl ChatHub {
 
 pub async fn get_messages(
     State(state): State<crate::AppState>,
-    _user: AuthUser,
+    _user: FullUser,
 ) -> Json<Vec<Message>> {
     Json(state.chat.history_snapshot().await)
 }
 
 pub async fn post_text(
     State(state): State<crate::AppState>,
-    user: AuthUser,
+    user: FullUser,
     Json(body): Json<TextMessageRequest>,
 ) -> Result<Json<Message>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     match state
         .chat
-        .post_text(user.user_id, &user.nickname, &body.content)
+        .post_text(user.0.user_id, &user.0.nickname, &body.content)
         .await
     {
         Ok(m) => Ok(Json(m)),
@@ -204,8 +204,14 @@ async fn handle_socket(
     let chat = state.chat.clone();
     let max_len = chat.max_message_len;
 
+    let force_user_id = session.user_id;
     let mut send_task = tokio::spawn(async move {
         while let Ok(event) = rx.recv().await {
+            if let WsServerEvent::ForceLogout { user_id, .. } = &event {
+                if *user_id != force_user_id {
+                    continue;
+                }
+            }
             match serde_json::to_string(&event) {
                 Ok(text) => {
                     if sender.send(WsMessage::Text(text.into())).await.is_err() {

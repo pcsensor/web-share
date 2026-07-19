@@ -1,4 +1,4 @@
-use crate::auth::AuthUser;
+use crate::auth::FullUser;
 use crate::db::{Db, StoredFile};
 use crate::models::{FileMeta, Message, MessageKind};
 use axum::{
@@ -84,9 +84,10 @@ pub struct UploadResponse {
 
 pub async fn upload(
     State(state): State<crate::AppState>,
-    user: AuthUser,
+    user: FullUser,
     mut multipart: Multipart,
 ) -> Result<Json<UploadResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let user = user.0;
     let mut filename: Option<String> = None;
     let mut content_type: Option<String> = None;
     let mut caption = String::new();
@@ -216,7 +217,7 @@ pub async fn upload(
 
 pub async fn download(
     State(state): State<crate::AppState>,
-    _user: AuthUser,
+    _user: FullUser,
     Path(id): Path<Uuid>,
 ) -> Result<Response, (StatusCode, Json<serde_json::Value>)> {
     serve_file(&state, id, true).await
@@ -224,7 +225,7 @@ pub async fn download(
 
 pub async fn preview(
     State(state): State<crate::AppState>,
-    _user: AuthUser,
+    _user: FullUser,
     Path(id): Path<Uuid>,
 ) -> Result<Response, (StatusCode, Json<serde_json::Value>)> {
     let stored = state

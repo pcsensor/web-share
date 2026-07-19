@@ -1,9 +1,12 @@
+mod admin;
 mod auth;
 mod chat;
 mod config;
+mod crypto_seal;
 mod db;
 mod files;
 mod models;
+mod totp;
 
 use auth::AuthState;
 use axum::{
@@ -11,7 +14,7 @@ use axum::{
     http::{header, HeaderValue, Method},
     middleware::{self, Next},
     response::Response,
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 use chat::ChatHub;
@@ -37,15 +40,50 @@ pub struct AppState {
     pub config: Config,
 }
 
+fn load_dotenv() {
+    // Prefer first existing .env among: cwd, exe dir, crate dir.
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Ok(cwd) = std::env::current_dir() {
+        candidates.push(cwd.join(".env"));
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.join(".env"));
+            // target/debug/.env → also try project root two levels up
+            if let Some(parent) = dir.parent().and_then(|p| p.parent()) {
+                candidates.push(parent.join(".env"));
+            }
+        }
+    }
+    candidates.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".env"));
+
+    let mut loaded = false;
+    for path in candidates {
+        if !path.is_file() {
+            continue;
+        }
+        match dotenvy::from_path(&path) {
+            Ok(()) => {
+                eprintln!("loaded env file: {}", path.display());
+                loaded = true;
+                break;
+            }
+            Err(e) => eprintln!("warning: could not load {}: {e}", path.display()),
+        }
+    }
+    if !loaded {
+        // Fall back to dotenvy default search (cwd + parents)
+        match dotenvy::dotenv() {
+            Ok(path) => eprintln!("loaded env file: {}", path.display()),
+            Err(dotenvy::Error::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => eprintln!("warning: could not load .env: {e}"),
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Load `.env` from the current working directory (and parents).
-    // Existing process env vars take precedence and are not overwritten.
-    match dotenvy::dotenv() {
-        Ok(path) => eprintln!("loaded env file: {}", path.display()),
-        Err(dotenvy::Error::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => eprintln!("warning: could not load .env: {e}"),
-    }
+    load_dotenv();
 
     tracing_subscriber::registry()
         .with(
@@ -56,6 +94,14 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let config = Config::from_env()?;
+    tracing::info!(
+        device_trust_days = config.device_trust_days,
+        invite_ttl_hours = config.invite_ttl_hours,
+        session_ttl_secs = config.session_ttl_secs,
+        registration_open = config.registration_open,
+        "config loaded"
+    );
+
     std::fs::create_dir_all(&config.data_dir)?;
     let uploads = config.uploads_dir();
     std::fs::create_dir_all(&uploads)?;
@@ -68,7 +114,8 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
 
-    // Startup purge
+    auth::bootstrap_admin(&db, &config).await?;
+
     match db.purge_expired().await {
         Ok(stats) if !stats.is_empty() => {
             tracing::info!(
@@ -91,7 +138,6 @@ async fn main() -> anyhow::Result<()> {
         config: config.clone(),
     };
 
-    // Background session cleanup
     {
         let auth = state.auth.clone();
         tokio::spawn(async move {
@@ -103,7 +149,6 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
-    // Background data retention purge
     {
         let db = state.db.clone();
         let interval_secs = config.purge_interval_secs.max(10);
@@ -138,9 +183,55 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let api = Router::new()
-        .route("/api/login", post(auth::login))
+        // Auth
+        .route("/api/auth/register", post(auth::register))
+        .route("/api/auth/login", post(auth::login))
+        .route("/api/auth/2fa/verify", post(auth::verify_2fa))
+        .route("/api/auth/2fa/recover", post(auth::recover_2fa))
+        .route("/api/auth/totp/setup/start", post(auth::totp_setup_start))
+        .route(
+            "/api/auth/totp/setup/confirm",
+            post(auth::totp_setup_confirm),
+        )
         .route("/api/logout", post(auth::logout))
         .route("/api/me", get(auth::me))
+        .route("/api/config", get(auth::public_config))
+        // Security
+        .route("/api/security/devices", get(auth::list_devices))
+        .route(
+            "/api/security/devices/{id}",
+            delete(auth::revoke_device),
+        )
+        .route("/api/security/password", post(auth::change_password))
+        // Admin
+        .route("/api/admin/users", get(admin::list_users))
+        .route(
+            "/api/admin/users/{id}/approve",
+            post(admin::approve_user),
+        )
+        .route(
+            "/api/admin/users/{id}/reject",
+            post(admin::reject_user),
+        )
+        .route(
+            "/api/admin/users/{id}/disable",
+            post(admin::disable_user),
+        )
+        .route(
+            "/api/admin/users/{id}/enable",
+            post(admin::enable_user),
+        )
+        .route(
+            "/api/admin/users/{id}/reset-totp",
+            post(admin::reset_totp),
+        )
+        .route("/api/admin/audit", get(admin::list_audit))
+        .route("/api/admin/invites", get(admin::list_invites).post(admin::create_invite))
+        .route(
+            "/api/admin/invites/{id}",
+            delete(admin::revoke_invite),
+        )
+        // Chat
         .route("/api/messages", get(chat::get_messages))
         .route("/api/messages/text", post(chat::post_text))
         .route("/api/upload", post(files::upload))
@@ -151,6 +242,10 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .merge(api)
         .route_service("/", ServeFile::new(static_dir.join("index.html")))
+        .route_service(
+            "/admin",
+            ServeFile::new(static_dir.join("admin.html")),
+        )
         .nest_service("/assets", ServeDir::new(static_dir.join("assets")))
         .layer(DefaultBodyLimit::max(
             max_file.saturating_add(2 * 1024 * 1024),
